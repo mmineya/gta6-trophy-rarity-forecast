@@ -70,6 +70,10 @@ function round4(value: number): number {
   return Math.round(value * 10_000) / 10_000;
 }
 
+/**
+ * Fit recency-weighted log-time trends; forecasting damps positive drift by
+ * the recent/long-window slope ratio (0.35–1.15) and suppresses negative drift.
+ */
 function weightedFit(points: Observation[], checkpointX: number): Fit {
   // Center x at the checkpoint. The intercept a is then the fitted logit
   // AT the checkpoint, rather than the raw intercept at launch midnight.
@@ -131,9 +135,12 @@ function forecastTrophy(c: ForecastCase, index: number, checkpointMs: number, ta
   observations.sort((left, right) => left.time - right.time);
   const points = observations.slice(-Math.min(24, observations.length));
   const last = points[points.length - 1];
-  if (!last) {
-    // With no observation at all, express broad ignorance on the logit scale.
-    return normalizeQuantiles(Z.map((z) => sigmoidPercent(logit(0.1) + z * 2.5)));
+  if (points.length < 2) {
+    // Too few valid reads to fit a trend: use the house persistence baseline.
+    // A wholly missing rate uses zero before the baseline's logit clamp.
+    const center = logit(last?.rate ?? 0);
+    const spread = 0.5 * Math.sqrt(Math.max(0, c.horizon_minutes / 1440));
+    return Z.map((z) => round4(sigmoidPercent(center + z * spread)));
   }
   if (last.rate >= 99.5) return [99.9, 99.95, 99.99, 100, 100];
 
