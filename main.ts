@@ -165,9 +165,9 @@ function forecastTrophy(c: ForecastCase, index: number, checkpointMs: number, ta
   const drift = effectiveSlope * deltaX;
   const medianLogit = clamp(anchor + drift, -LOGIT_LIMIT, LOGIT_LIMIT);
   const spread = Math.max(
-    0.25,
-    0.55 * Math.sqrt(days),
-    1.8 * longFit.residualStd * Math.sqrt(days / 2),
+    0.45,
+    0.85 * Math.sqrt(days),
+    2.6 * longFit.residualStd * Math.sqrt(days / 2),
     Math.abs(drift) * 0.9,
   );
 
